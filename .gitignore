@@ -160,4 +160,5 @@ cython_debug/
 #.idea/
 
 ignore/
+keys/
 .DS_Store
