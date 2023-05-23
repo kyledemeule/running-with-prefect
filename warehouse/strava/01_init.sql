@@ -4,5 +4,6 @@ create table strava.activities (
   distance numeric,
   elapsed_time numeric,
   moving_time numeric,
-  total_elevation_gain numeric
+  total_elevation_gain numeric,
+  activity_type string
 );

@@ -6,17 +6,19 @@ import requests
 
 from prefect import flow, task, get_run_logger
 from prefect.blocks.system import Secret
+from prefect_gcp import GcpCredentials
 
 STRAVA_MAX_PAGES=100
 STRAVA_PAGE_SIZE=100
 
 GBQ_STRAVA_ACTIVITIES_SCHEMA = [
-  bigquery.SchemaField("id", "int"),
+  bigquery.SchemaField("id", "integer"),
   bigquery.SchemaField("start_date", "timestamp"),
   bigquery.SchemaField("distance", "numeric"),
   bigquery.SchemaField("elapsed_time", "numeric"),
   bigquery.SchemaField("moving_time", "numeric"),
-  bigquery.SchemaField("total_elevation_gain", "numeric")
+  bigquery.SchemaField("total_elevation_gain", "numeric"),
+  bigquery.SchemaField("activity_type", "string")
 ]
 
 @task
@@ -74,19 +76,17 @@ def fetch_activities_from_strava(strava_token, start_date, end_date):
     r.raise_for_status()
     page_activities = json.loads(r.text)
     for a in page_activities:
-      if a.get("type") == "Run":
-        activities.append(
-          {
-            "distance": a.get("distance"),
-            "elapsed_time": a.get("elapsed_time"),
-            "id": a.get("id"),
-            "moving_time": a.get("moving_time"),
-            "start_date": a.get("start_date"),
-            "total_elevation_gain": a.get("total_elevation_gain"),
-          }
-        )
-      else:
-        pass
+      activities.append(
+        {
+          "distance": a.get("distance"),
+          "elapsed_time": a.get("elapsed_time"),
+          "id": a.get("id"),
+          "moving_time": a.get("moving_time"),
+          "start_date": a.get("start_date"),
+          "total_elevation_gain": a.get("total_elevation_gain"),
+          "activity_type": a.get("type"),
+        }
+      )
     if len(page_activities) == 0:
       break
   else:
@@ -105,7 +105,8 @@ def upsert_activities_to_bigquery(activities):
 
 def insert_activities_into_temp_table(activities):
   logger = get_run_logger()
-  client = bigquery.Client()
+  gcp_credentials_block = GcpCredentials.load("gcp-prefect-runner-474")
+  client = gcp_credentials_block.get_bigquery_client()
 
   tmp_table_id = "strava_activities_tmp_{}".format(datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S%f"))
   tmp_table_ref = client.dataset("strava_tmp").table(tmp_table_id)
@@ -120,7 +121,7 @@ def insert_activities_into_temp_table(activities):
     raise RuntimeError("Error(s) writing to Big Query table {}:\n{}".format(tmp_table_ref, errors))
   return tmp_table_ref
 
-def get_merge_query(tmp_tample_id):
+def get_merge_query(tmp_table_id):
   update_set_statement = ", ".join(["activities.{field} = tmp_table.{field}".format(field=f.name) for f in GBQ_STRAVA_ACTIVITIES_SCHEMA])
   insert_fields = ", ".join([f.name for f in GBQ_STRAVA_ACTIVITIES_SCHEMA])
   insert_values = ", ".join(["tmp_table.{}".format(f.name) for f in GBQ_STRAVA_ACTIVITIES_SCHEMA])
@@ -137,7 +138,7 @@ def get_merge_query(tmp_tample_id):
     when not matched then
       insert ({insert_fields}) values({insert_values})
   """.format(
-    tmp_tample_id=tmp_tample_id,
+    tmp_table_id=tmp_table_id,
     update_set_statement=update_set_statement,
     insert_fields=insert_fields,
     insert_values=insert_values
@@ -145,7 +146,8 @@ def get_merge_query(tmp_tample_id):
 
 def apply_merge_query_bigquery(tmp_table_ref):
   merge_query = get_merge_query(tmp_table_ref.table_id)
-  client = bigquery.Client()
+  gcp_credentials_block = GcpCredentials.load("gcp-prefect-runner-474")
+  client = gcp_credentials_block.get_bigquery_client()
   query_job = client.query(merge_query)
   return query_job.result()
 
