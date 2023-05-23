@@ -1,5 +1,6 @@
 import argparse
 import datetime
+from google.cloud import bigquery
 import json
 import requests
 
@@ -8,6 +9,15 @@ from prefect.blocks.system import Secret
 
 STRAVA_MAX_PAGES=100
 STRAVA_PAGE_SIZE=100
+
+GBQ_STRAVA_ACTIVITIES_SCHEMA = [
+  bigquery.SchemaField("id", "int"),
+  bigquery.SchemaField("start_date", "timestamp"),
+  bigquery.SchemaField("distance", "numeric"),
+  bigquery.SchemaField("elapsed_time", "numeric"),
+  bigquery.SchemaField("moving_time", "numeric"),
+  bigquery.SchemaField("total_elevation_gain", "numeric")
+]
 
 @task
 def parse_dates(start_date, end_date):
@@ -89,9 +99,55 @@ def upsert_activities_to_bigquery(activities):
   logger = get_run_logger()
   logger.info("Started with {} activities to upsert.".format(len(activities)))
 
-  with open("ignore/activities.json", 'w') as file_object:
-    json.dump(activities, file_object)
-  return
+  tmp_table_ref = insert_activities_into_temp_table(activities)
+  result = apply_merge_query_bigquery(tmp_table_ref)
+  logger.info("Bigquery mergre query result: {}".format(result))
+
+def insert_activities_into_temp_table(activities):
+  logger = get_run_logger()
+  client = bigquery.Client()
+
+  tmp_table_id = "strava_activities_tmp_{}".format(datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S%f"))
+  tmp_table_ref = client.dataset("strava_tmp").table(tmp_table_id)
+  tmp_table = bigquery.Table(tmp_table_ref, schema=GBQ_STRAVA_ACTIVITIES_SCHEMA)
+  tmp_table.expires=datetime.datetime.utcnow() + datetime.timedelta(days=3)
+  client.create_table(tmp_table)
+
+  errors = client.insert_rows_json(tmp_table_ref, activities)
+  if errors == []:
+    logger.info("Uploaded {} records to bigquery table tmp table {}".format(len(activities), tmp_table_ref))
+  else:
+    raise RuntimeError("Error(s) writing to Big Query table {}:\n{}".format(tmp_table_ref, errors))
+  return tmp_table_ref
+
+def get_merge_query(tmp_tample_id):
+  update_set_statement = ", ".join(["activities.{field} = tmp_table.{field}".format(field=f.name) for f in GBQ_STRAVA_ACTIVITIES_SCHEMA])
+  insert_fields = ", ".join([f.name for f in GBQ_STRAVA_ACTIVITIES_SCHEMA])
+  insert_values = ", ".join(["tmp_table.{}".format(f.name) for f in GBQ_STRAVA_ACTIVITIES_SCHEMA])
+  return """
+    merge strava.activities
+    using (
+      select
+        *
+      from strava_tmp.{tmp_table_id}
+    ) as tmp_table
+    on activities.id = tmp_table.id
+    when matched then
+      update set {update_set_statement}
+    when not matched then
+      insert ({insert_fields}) values({insert_values})
+  """.format(
+    tmp_tample_id=tmp_tample_id,
+    update_set_statement=update_set_statement,
+    insert_fields=insert_fields,
+    insert_values=insert_values
+  )
+
+def apply_merge_query_bigquery(tmp_table_ref):
+  merge_query = get_merge_query(tmp_table_ref.table_id)
+  client = bigquery.Client()
+  query_job = client.query(merge_query)
+  return query_job.result()
 
 @flow
 def sync_activities(start_date=None, end_date=None):
