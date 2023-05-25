@@ -162,3 +162,4 @@ cython_debug/
 ignore/
 keys/
 .DS_Store
+.streamlit/

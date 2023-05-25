@@ -1,3 +1,4 @@
 prefect
 prefect-gcp
 google-cloud-bigquery
+streamlit
