@@ -12,8 +12,12 @@ st.markdown("""
 This is the visualization of the data from an activate pipeline to stream Strava activitiy data to Bigquery using Prefect.
 Code for the pipeline can be found at https://github.com/kyledemeule/running-with-prefect.
 
-One goal of this runner is to run a distance of 2,000KM in a single year (aka two mega-meters). So far they've never done it, but hopefully the pace and projections below can help them achieve that.
+My goal has been to run a distance of 2,000KM in a single year (aka two mega-meters). So far I've never done it, but hopefully the pace and projections below can help me achieve that.
 """)
+
+# colors
+# using scale from https://davidmathlogic.com/colorblind/
+wong_color_scale = ["#0072B2", "#E69F00", "#009E73", "#56B4E9", "#000000", "#CC79A7", "#D55E00", "#F0E442"]
 
 # auth
 credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
@@ -42,9 +46,10 @@ order by 1 asc
 weekly_count_data = bq_run_query(weekly_counts_query)
 weekly_count_df = pd.DataFrame(weekly_count_data)
 weekly_count_df["weekly_distance"] = pd.to_numeric(weekly_count_df["weekly_distance"])
+weekly_count_df["week"] = weekly_count_df["week"].astype("string")
 c = alt.Chart(weekly_count_df).mark_bar().encode(
-  x="week",
-  y="weekly_distance"
+  alt.X("week", axis=alt.Axis(title=None, labelAngle=-45)),
+  alt.Y("weekly_distance", axis=alt.Axis(title="Weekly Distance (KM)"))
 )
 st.altair_chart(c, use_container_width=True)
 
@@ -73,10 +78,24 @@ cd_data = bq_run_query(cumulative_distance_query)
 cd_df = pd.DataFrame(cd_data)
 cd_df["cumulative_distance"] = pd.to_numeric(cd_df["cumulative_distance"])
 cd_df["year"] = cd_df["year"].astype("string")
+# Add a goal
+goal_df = pd.DataFrame({
+  "day_of_year": [0, 365],
+  "cumulative_distance": [0, 2000],
+  "year": ["Target"]*2,
+})
+cd_df = pd.concat([goal_df, cd_df])
 c = alt.Chart(cd_df).mark_line().encode(
   x="day_of_year",
   y="cumulative_distance",
-  color="year"
+  color=alt.Color("year", scale={"range": wong_color_scale}),
+  strokeDash=alt.condition(
+    alt.datum.year == "Target",
+    alt.value([2, 2]), # dashed line
+    alt.value([0]), # solid line
+  )
+).configure_range(
+  category={"scheme": "tableau10"}
 )
 st.altair_chart(c, use_container_width=True)
 
@@ -97,10 +116,10 @@ eoy_pace_km = (current_year_kms * 365) / day_of_year
 days_remaining = 365 - day_of_year
 daily_needed_kms = (2000 - current_year_kms) / days_remaining
 
-st.write("Current pace and projections for reaching two mega-meters (2,000 KM).")
+st.write("Current pace and projections for reaching two mega-meters (2,000 KM):")
 lines = [
   "Current year KMs: {:.2f} KM".format(round(current_year_kms, 2)),
-  "Current end of year KM pace: {:.2f} KM\n".format(round(eoy_pace_km, 2)),
+  "Current end of year KM pace: {:.2f} KM".format(round(eoy_pace_km, 2)),
   "",
   "Daily needed KMs for twΩm: {:.2f} KM ({} days left)".format(round(daily_needed_kms, 2), days_remaining),
   "Weekly needed KMs for twΩm: {:.2f} KM ({} weeks left)".format(round(daily_needed_kms * 7, 2), round(days_remaining / 7, 2)),
