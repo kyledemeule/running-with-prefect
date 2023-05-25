@@ -15,10 +15,6 @@ Code for the pipeline can be found at https://github.com/kyledemeule/running-wit
 My goal has been to run a distance of 2,000KM in a single year (aka two mega-meters). So far I've never done it, but hopefully the pace and projections below can help me achieve that.
 """)
 
-# colors
-# using scale from https://davidmathlogic.com/colorblind/
-wong_color_scale = ["#0072B2", "#E69F00", "#009E73", "#56B4E9", "#000000", "#CC79A7", "#D55E00", "#F0E442"]
-
 # auth
 credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
 client = bigquery.Client(credentials=credentials)
@@ -86,9 +82,9 @@ goal_df = pd.DataFrame({
 })
 cd_df = pd.concat([goal_df, cd_df])
 c = alt.Chart(cd_df).mark_line().encode(
-  x="day_of_year",
-  y="cumulative_distance",
-  color=alt.Color("year", scale={"range": wong_color_scale}),
+  alt.X("day_of_year", axis=alt.Axis(title="Day of Year"), scale=alt.Scale(domain=[0, 366])),
+  alt.Y("cumulative_distance", axis=alt.Axis(title="Cumulative Distance (KM)")),
+  color="year",
   strokeDash=alt.condition(
     alt.datum.year == "Target",
     alt.value([2, 2]), # dashed line
