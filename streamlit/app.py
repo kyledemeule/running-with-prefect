@@ -111,13 +111,19 @@ day_of_year = datetime.now().timetuple().tm_yday
 eoy_pace_km = (current_year_kms * 365) / day_of_year
 days_remaining = 365 - day_of_year
 daily_needed_kms = (2000 - current_year_kms) / days_remaining
+daily_needed_kms_at6 = (2000 - current_year_kms) / (days_remaining * Decimal(6/7))
+daily_needed_kms_at5 = (2000 - current_year_kms) / (days_remaining * Decimal(5/7))
+daily_needed_kms_at4 = (2000 - current_year_kms) / (days_remaining * Decimal(4/7))
 
 st.write("Current pace and projections for reaching two mega-meters (2,000 KM):")
 lines = [
   "Current year KMs: {:.2f} KM".format(round(current_year_kms, 2)),
   "Current end of year KM pace: {:.2f} KM".format(round(eoy_pace_km, 2)),
   "",
-  "Daily needed KMs for twΩm: {:.2f} KM ({} days left)".format(round(daily_needed_kms, 2), days_remaining),
+  "Daily needed KMs for twΩm: {:.2f} KM ({} days left) at 7 runs per week".format(round(daily_needed_kms, 2), days_remaining),
+  "\t{:.2f} KM at 6 runs per week".format(round(daily_needed_kms_at6, 2)),
+  "\t{:.2f} KM at 5 runs per week".format(round(daily_needed_kms_at5, 2)),
+  "\t{:.2f} KM at 4 runs per week".format(round(daily_needed_kms_at4, 2)),
   "Weekly needed KMs for twΩm: {:.2f} KM ({} weeks left)".format(round(daily_needed_kms * 7, 2), round(days_remaining / 7, 2)),
   "Monthly needed KMs for twΩm: {:.2f} KM ({} months left)".format(round(daily_needed_kms * Decimal(30.5), 2), round(days_remaining / Decimal(30.5), 2))
 ]
