@@ -47,7 +47,7 @@ prefect deployment build flows/sync_activities.py:sync_activities -n sync_activi
 
 ## Streamlit
 
-Run locall with:
+Run locally with:
 ```
 streamlit run streamlit/app.py 
 ```
