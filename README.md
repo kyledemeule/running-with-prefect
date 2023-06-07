@@ -24,3 +24,30 @@ This will sync the past 3 days. Can sync specific date ranges like:
 ```
 python flows/sync_activities.py --start_date=2023-01-01 --end_date=2023-05-01
 ```
+
+## Deploy
+
+Run:
+```
+prefect deployment apply sync_activities-deployment.yaml
+```
+
+### Docker
+
+Build image:
+```
+docker buildx build --platform linux/amd64 -t running-with-prefect:v1 .
+docker tag running-with-prefect:v1 us-west1-docker.pkg.dev/running-with-prefect/running-with-prefect/running-with-prefect:v1
+docker push us-west1-docker.pkg.dev/running-with-prefect/running-with-prefect/running-with-prefect:v1
+```
+
+```
+prefect deployment build flows/sync_activities.py:sync_activities -n sync_activities -sb github/github-running-with-prefect -ib cloud-run-job/gcp-cloud-run-running-with-prefect -o sync_activities-deployment.yaml --apply
+```
+
+## Streamlit
+
+Run locall with:
+```
+streamlit run streamlit/app.py 
+```

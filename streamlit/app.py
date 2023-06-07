@@ -31,7 +31,7 @@ def bq_run_query(query):
 st.subheader("Weekly Distance")
 weekly_counts_query = """
 select
-  date(date_trunc(start_date, week)) as week,
+  date(date_trunc(start_date, week(monday))) as week,
   sum(distance) / 1000 as weekly_distance
 from strava.activities
 where activity_type = 'Run'
