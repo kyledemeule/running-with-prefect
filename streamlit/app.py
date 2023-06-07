@@ -31,11 +31,11 @@ def bq_run_query(query):
 st.subheader("Weekly Distance")
 weekly_counts_query = """
 select
-  date(date_trunc(start_date, week(monday))) as week,
+  date(date_trunc(datetime(start_date, "US/Pacific"), week(monday))) as week,
   sum(distance) / 1000 as weekly_distance
 from strava.activities
 where activity_type = 'Run'
-and date(start_date) >= date_trunc(current_date(), year)
+and date(datetime(start_date, "US/Pacific")) >= date_trunc(current_date(), year)
 group by 1
 order by 1 asc
 """
@@ -53,14 +53,20 @@ st.altair_chart(c, use_container_width=True)
 st.subheader("Annual Cumulative Distance Comparison")
 cumulative_distance_query = """
 with
-day_counts as (
+run_activities as (
   select
-    extract(year from start_date) as year,
-    date_diff(start_date, date_trunc(start_date, year), day) + 1 as day_of_year,
-    sum(distance) / 1000 as total_distance,
+    datetime(start_date, "US/Pacific") as start_date_pst,
+    distance
   from strava.activities
   where activity_type = 'Run'
-  and start_date >= '2020-01-01'
+),
+day_counts as (
+  select
+    extract(year from start_date_pst) as year,
+    date_diff(start_date_pst, date_trunc(start_date_pst, year), day) + 1 as day_of_year,
+    sum(distance) / 1000 as total_distance,
+  from run_activities
+  where start_date_pst >= '2020-01-01'
   group by 1, 2
 )
 select
@@ -100,7 +106,7 @@ select
   sum(distance) / 1000 as current_year_distance
 from strava.activities
 where activity_type = 'Run'
-and date(start_date) >= date_trunc(current_date(), year)
+and date(datetime(start_date, "US/Pacific")) >= date_trunc(current_date(), year)
 """
 
 # Stats
