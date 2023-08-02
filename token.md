@@ -3,7 +3,7 @@
 Generating the token is a few steps, first go to:
 
 ```
-https://www.strava.com/oauth/authorize?client_id=<client_id>&redirect_uri=http://localhost&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write
+https://www.strava.com/oauth/authorize?client_id=<client_id>&redirect_uri=http://localhost&response_type=code&approval_prompt=auto&scope=activity:read_all
 ```
 
 Save the code and get a refresh token:
