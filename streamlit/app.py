@@ -6,6 +6,7 @@ import numpy as np
 from datetime import datetime
 import altair as alt
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 st.title('Running with Prefect')
 st.markdown("""
@@ -113,7 +114,7 @@ and date(datetime(start_date, "US/Pacific")) >= date_trunc(current_date(), year)
 st.subheader("Pace and Projections")
 current_year_data = bq_run_query(current_year_distance_query)
 current_year_kms = current_year_data[0]["current_year_distance"]
-day_of_year = datetime.now().timetuple().tm_yday
+day_of_year = datetime.now(ZoneInfo('US/Pacific')).timetuple().tm_yday
 eoy_pace_km = (current_year_kms * 365) / day_of_year
 days_remaining = 365 - day_of_year
 daily_needed_kms = (2000 - current_year_kms) / days_remaining
