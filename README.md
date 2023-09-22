@@ -2,7 +2,7 @@
 
 This repo contains code for a [Prefect](https://www.prefect.io/) flow to sync activity data from my [Strava](https://www.strava.com/) account to [Bigquery](https://cloud.google.com/bigquery).
 
-The data is visualized and available at [https://running-with-prefect.streamlit.app/](https://running-with-prefect.streamlit.app/).
+The data is visualized and available at [https://running-with-prefect.calmtech.link/](https://running-with-prefect.calmtech.link/).
 
 ## Running
 
