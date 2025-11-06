@@ -1,2 +1,0 @@
-# Procfile
-web: web: streamlit run streamlit/app.py --server.port=$PORT --server.address=0.0.0.0

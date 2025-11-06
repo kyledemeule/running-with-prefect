@@ -199,3 +199,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform*
+
+# streamlit
+.secrets.toml

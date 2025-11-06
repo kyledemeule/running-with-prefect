@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: running-with-prefect-streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./.secrets.toml:/app/.streamlit/secrets.toml:ro
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+    restart: unless-stopped
+
