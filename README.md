@@ -47,7 +47,18 @@ prefect deployment build flows/sync_activities.py:sync_activities -n sync_activi
 
 ## Streamlit
 
-Run locally with:
+Create a `.secrets.toml` file with the necessary secrets.
+
+Then change to the streamlit directory, build the image, then run the server:
 ```
-streamlit run streamlit/app.py 
+cd streamlit
+make build
+make run
 ```
+
+Don't forget to stop it when you are done:
+```
+make stop
+```
+
+
