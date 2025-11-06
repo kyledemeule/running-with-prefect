@@ -2,9 +2,8 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy from streamlit/ directory (expects build context to be repo root)
-COPY streamlit/app.py .
-COPY streamlit/requirements.txt .
+COPY app.py .
+COPY requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
