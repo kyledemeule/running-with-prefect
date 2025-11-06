@@ -16,6 +16,10 @@ Code for the pipeline can be found at https://github.com/kyledemeule/running-wit
 My goal has been to run a distance of 2,000KM in a single year (aka two mega-meters). So far I've never done it, but hopefully the pace and projections below can help me achieve that.
 """)
 
+st.markdown("""
+**2025 Update**: I originally created this app in 2023 with the goal of running 2,000KM in a single year. Since then I've ran this amount multiple times! This site was very helpful in reaching this goal, so I will leave it up with the date paused at 2025-07-01, and it will no longer update. Thanks for checking it out!
+""")
+
 # auth
 credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
 client = bigquery.Client(credentials=credentials)
@@ -36,7 +40,8 @@ select
   sum(distance) / 1000 as weekly_distance
 from strava.activities
 where activity_type = 'Run'
-and date(datetime(start_date, "US/Pacific")) >= date_trunc(current_date(), year)
+and date(datetime(start_date, "US/Pacific")) >= '2025-01-01'
+and date(datetime(start_date, "US/Pacific")) < '2025-07-01'
 group by 1
 order by 1 asc
 """
@@ -68,6 +73,7 @@ day_counts as (
     sum(distance) / 1000 as total_distance,
   from run_activities
   where start_date_pst >= '2020-01-01'
+  and start_date_pst < '2025-07-01'
   group by 1, 2
 )
 select
@@ -107,14 +113,16 @@ select
   sum(distance) / 1000 as current_year_distance
 from strava.activities
 where activity_type = 'Run'
-and date(datetime(start_date, "US/Pacific")) >= date_trunc(current_date(), year)
+and date(datetime(start_date, "US/Pacific")) >= '2025-01-01'
+and date(datetime(start_date, "US/Pacific")) < '2025-07-01'
 """
 
 # Stats
 st.subheader("Pace and Projections")
 current_year_data = bq_run_query(current_year_distance_query)
 current_year_kms = current_year_data[0]["current_year_distance"]
-day_of_year = datetime.now(ZoneInfo('US/Pacific')).timetuple().tm_yday
+# day_of_year = datetime.now(ZoneInfo('US/Pacific')).timetuple().tm_yday
+day_of_year = 182 # pretent it is 2025-07-01
 eoy_pace_km = (current_year_kms * 365) / day_of_year
 days_remaining = 365 - day_of_year
 daily_needed_kms = (2000 - current_year_kms) / days_remaining

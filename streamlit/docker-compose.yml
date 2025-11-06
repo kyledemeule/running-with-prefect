@@ -10,6 +10,7 @@ services:
       - "8501:8501"
     volumes:
       - ./.secrets.toml:/app/.streamlit/secrets.toml:ro
+      - ./app.py:/app/app.py
     environment:
       - STREAMLIT_SERVER_HEADLESS=true
     restart: unless-stopped
